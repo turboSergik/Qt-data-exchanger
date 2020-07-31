@@ -4,60 +4,29 @@
 #include <QVector>
 
 
-void FillDataFromString(std::string s, QVector<uint32_t>& source)
+uint32_t GetBroadcastAddress(uint32_t address, uint32_t mask)
 {
-    uint32_t val = 0;
+    uint8_t okstet1 = ((address >> 24) & ((1 << 8) - 1));
+    uint8_t okstet2 = ((address >> 16) & ((1 << 8) - 1));
+    uint8_t okstet3 = ((address >> 8)  & ((1 << 8) - 1));
+    uint8_t okstet4 = ((address)       & ((1 << 8) - 1));
 
-    for (size_t i = 0; i < s.size(); i++)
-    {
+    uint8_t okstet1_2 = ((mask >> 24) & ((1 << 8) - 1));
+    uint8_t okstet2_2 = ((mask >> 16) & ((1 << 8) - 1));
+    uint8_t okstet3_2 = ((mask >> 8)  & ((1 << 8) - 1));
+    uint8_t okstet4_2 = ((mask)       & ((1 << 8) - 1));
 
-        if (s[i] == '.' && source.size() < 4)
-        {
-            source.push_back(val);
-            val = 0;
-        }
-        else if (s[i] >= '0' && s[i] <= '9')
-        {
-            val = val * 10 + s[i] - '0';
-        }
-        else if (s[i] == '/')
-        {
-            break;
-        }
-        else throw std::exception();
-    }
-    source.push_back(val);
+    okstet1_2 ^= ((1 << 8) - 1);
+    okstet2_2 ^= ((1 << 8) - 1);
+    okstet3_2 ^= ((1 << 8) - 1);
+    okstet4_2 ^= ((1 << 8) - 1);
 
-    if (source.size() != 4) throw std::exception();
-}
+    uint32_t broadcast = ((okstet1 | okstet1_2) << 24) +
+                         ((okstet2 | okstet2_2) << 16) +
+                         ((okstet3 | okstet3_2) << 8) +
+                         ((okstet4 | okstet4_2));
 
-
-std::string GetBroadcastAddress(std::string address, std::string mask)
-{
-    QVector<uint32_t> addresses;
-    QVector<uint32_t> masks;
-
-    addresses.clear();
-    masks.clear();
-
-    FillDataFromString(address, addresses);
-    FillDataFromString(mask, masks);
-
-    QVector<uint32_t> res;
-
-    for (int i = 0; i < 4; i++)
-    {
-        res.push_back(addresses[i] | ((masks[i] ^ ((1 << 8) - 1))));
-    }
-
-    std::string result = "";
-    for (int i = 0; i < 4; i++)
-    {
-        result = result + std::to_string(res[i]);
-        if (i != 3) result = result + ".";
-    }
-
-    return result;
+    return broadcast;
 }
 
 
@@ -66,22 +35,24 @@ int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
 
-    // input way doesnt matter, i think
 
-    std::string address = "192.168.5.138/24";
-    std::string mask = "255.255.255.0";
+    uint32_t address = 3338731876;
+    uint32_t mask = 4294967264;
+    // broadcast for this -  3338731903
+
+    uint32_t broadcast;
 
     try
     {
-        std::string result = GetBroadcastAddress(address, mask);
-        qDebug() << QString::fromStdString(result);
+        broadcast = GetBroadcastAddress(address, mask);
+        qDebug() << broadcast;
     }
     catch(...)
     {
         qDebug() << "Wrong data!";
     }
 
-    // 192.168.5.255 correct for this sample
+
 
     // return app.exec();
 }
